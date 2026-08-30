@@ -20,8 +20,10 @@
 #show quote.where(block: true): it => block(
   inset: (left: 10pt), stroke: (left: 1.5pt + luma(180)),
   text(style: "italic", fill: luma(45), it.body))
+// la table NE DOIT PAS être enfermée dans un par() : Typst 0.15 la supprime alors
+// entièrement, sans erreur. Le réglage se pose donc dans la portée du bloc.
 #show table: it => block(above: 1.1em, below: 1.1em,
-  par(justify: false, text(size: 8.8pt, it)))
+  [#set par(justify: false); #text(size: 8.8pt, it)])
 #show figure: it => block(above: 1.4em, below: 1.4em, it)
 #show figure.caption: it => text(size: 8.5pt, fill: luma(70), it)
 #show link: it => text(fill: rgb("#0072B2"), it)
@@ -162,6 +164,8 @@ Les fabriques et le style vivent dans l'extra #raw("figures"), qui tire matplotl
     [déclaré ; listes imbriquées, notes de bas de page et HTML brut ne sont pas traduits],
     [Les tableaux très larges débordent en petits caractères plutôt que de se replier],
     [reconnu ; un tableau de neuf colonnes reste dense],
+    [La version 0.1 rendait des tableaux vides, sa règle de mise en forme enfermant la table dans un #raw("par()") que Typst supprime sans lever d erreur],
+    [corrigé en 0.2.1, et un test compile désormais un document et cherche les cellules DANS le PDF ; les 24 rapports produits avant cette date sont à régénérer],
     [La police est celle du système, avec Helvetica en premier choix],
     [déclaré ; un poste sans Helvetica prendra Arial puis DejaVu Sans, qui porte bien l'espace fine insécable du séparateur de milliers, vérifié dans sa table de caractères],
 )
