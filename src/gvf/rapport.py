@@ -37,7 +37,8 @@ GABARIT = """#set document(title: {titre}, author: "Guillaume Vaudescal")
 #show quote.where(block: true): it => block(
   inset: (left: 10pt), stroke: (left: 1.5pt + luma(180)),
   text(style: "italic", fill: luma(45), it.body))
-#show table: it => block(above: 1.1em, below: 1.1em, text(size: 8.8pt, it))
+#show table: it => block(above: 1.1em, below: 1.1em,
+  par(justify: false, text(size: 8.8pt, it)))
 #show figure: it => block(above: 1.4em, below: 1.4em, it)
 #show figure.caption: it => text(size: 8.5pt, fill: luma(70), it)
 #show link: it => text(fill: rgb("#0072B2"), it)
