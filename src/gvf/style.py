@@ -46,6 +46,10 @@ def appliquer(taille_base: float = 11.0) -> None:
         "figure.dpi": 200,
         "savefig.dpi": 200,
         "savefig.bbox": "tight",
+        # les polices sont embarquées en TrueType dans les PDF plutôt que converties en dessins :
+        # le texte d'une figure reste ainsi sélectionnable et cherchable dans le rapport
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
         "figure.constrained_layout.use": True,
         "font.size": taille_base,
         "axes.titlesize": taille_base + 1,
