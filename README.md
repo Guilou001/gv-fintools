@@ -1,28 +1,82 @@
-# gv-fintools : le rapport PDF d'un dépôt, engendré depuis son README
+# gv-fintools : la feuille de style des figures du portefeuille, et son rapport PDF
 
-Les dépôts du portefeuille portent tout leur contenu dans leur README : la question, la méthode, les
-tableaux avec leur lecture guidée, les figures avec leur mode d'emploi, les limites avec leur statut.
-Il leur manquait une forme imprimable. Cet outil la produit sans rien réécrire.
+Les vingt-cinq dépôts du portefeuille produisent des figures et des rapports. Ils le faisaient chacun
+de leur côté, en recopiant la même palette et la même fonction de réglage. Cet outil met les deux
+choses à un seul endroit.
 
 [![ci](https://github.com/Guilou001/gv-fintools/actions/workflows/ci.yml/badge.svg)](https://github.com/Guilou001/gv-fintools/actions/workflows/ci.yml)
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![licence](https://img.shields.io/badge/code-MIT-green)
 
-**Résultat en une phrase.** Une commande transforme le README d'un dépôt en un rapport PDF composé,
-paginé et citable, en traduisant le Markdown vers Typst : **13 tests fermés**, dont un qui compile un
-document complet et relit le PDF produit.
+**Résultat en une phrase.** Sept fabriques de figures qui rendent les nombres qu'elles dessinent, une
+feuille de style qui écrit les axes en français et enregistre en PNG et en PDF vectoriel, et une
+commande qui transforme le README d'un dépôt en rapport composé : **29 tests fermés**, dont un qui
+compile un document entier et relit le PDF produit.
 
-## 1. La question posée
+*Summary in English. A shared plotting layer for a portfolio of finance repositories: seven chart
+factories (waterfall, ROC and KS, transition matrix, fan chart, tornado, ridgeline, run-off
+triangle), a French-locale style sheet with vector output, and a Markdown to Typst report generator.
+Every factory returns the numbers it draws, so the tests check arithmetic rather than pixels.*
 
-Comment donner un rapport PDF à vingt-quatre dépôts sans écrire vingt-quatre rapports ?
+## 1. Les deux problèmes que cet outil règle
 
-En mots simples : le texte existe déjà, bien écrit et vérifié, dans le README. Le dupliquer dans un
-second fichier créerait deux versions qui divergeraient dès la première correction. Mieux vaut une
-seule source et deux formes.
+**Le premier est la duplication.** Mesuré le 2026-08-30 sur les 399 fichiers Python du portefeuille :
+la palette est recopiée dans **24 fichiers** et la fonction de réglage redéfinie **21 fois**. Une
+correction de graisse de trait devait donc être faite vingt et une fois, et ne l'était jamais. Pire,
+**13 des 20 appels d'enregistrement n'écrivaient que du PNG**, si bien que la moitié des figures
+n'existait sous aucune forme vectorielle et se pixelisait dans les rapports imprimés.
 
-## 2. Ce que l'outil traduit, et ce qu'il écarte
+**Le second est qu'une figure ne se teste pas.** Une fonction qui ne rend que des pixels ne peut
+être contredite par aucun test : elle peut être vraie et ne rien montrer, ou montrer quelque chose de
+faux sans que rien ne le signale. C'est la règle que l'audit du 2026-08-29 a coûté cher à apprendre.
 
-Le traducteur ne couvre pas tout le Markdown, seulement ce que les README du portefeuille emploient.
+La réponse tient en une décision : **chaque fabrique dessine et renvoie les nombres qu'elle a
+dessinés**. Le test porte sur les nombres, le dessin n'est plus qu'une mise en forme de ce qui a déjà
+été vérifié.
+
+## 2. Les sept fabriques
+
+![Cascade, courbe ROC, matrice de transition, éventail de trajectoires](docs/figures/fabriques_1.png)
+
+![Tornade, crêtes de distributions, triangle de développement](docs/figures/fabriques_2.png)
+
+Comment lire ces deux planches : chaque panneau est produit par un appel unique à la fabrique du même
+nom, sur des données de démonstration, et le code qui les engendre tient dans le fichier de test.
+
+| Fabrique | Ce qu'elle répond | Ce qu'elle renvoie |
+|---|---|---|
+| `cascade` | d'où part une grandeur, ce qui l'augmente, ce qui la diminue, où elle arrive | les cumuls, départ compris |
+| `roc_ks` | un score de défaut sépare-t-il les défaillants des sains, et à quel seuil | aire, Gini, écart de Kolmogorov-Smirnov, seuil qui l'atteint |
+| `matrice_transition` | comment les notations migrent d'une année sur l'autre | la matrice telle qu'elle est dessinée |
+| `eventail` | quelle incertitude porte un jeu de trajectoires simulées | les quantiles, série par série |
+| `tornade` | de quelle hypothèse le résultat dépend vraiment | l'ordre de tri, par amplitude |
+| `ridgeline` | comment se comparent plusieurs distributions de pertes | moyenne, médiane et mode par groupe |
+| `triangle` | comment les sinistres d'une année se développent avec le retard | la matrice, cases vides comprises |
+
+Comment lire ce tableau, en trois constats. Le premier est que la colonne de droite est la raison
+d'être du module : elle est ce sur quoi les tests portent. Le deuxième est que trois décisions de
+dessin y sont figées parce qu'elles sont fausses par défaut ailleurs, la barre de total d'une cascade
+partant de zéro et non du cumul précédent, l'échelle d'une matrice de transition étant bornée au plus
+grand terme **hors diagonale** sans quoi une persistance de 91 % écrase toutes les migrations, et
+l'aire sous la courbe ROC étant calculée par la statistique de Mann et Whitney, donc exactement,
+ex aequo compris. Le troisième est que la fabrique du triangle laisse vides les cases qui ne sont pas
+encore arrivées, au lieu de les remplir de zéros : c'est exactement ce qu'un provisionnement doit
+estimer.
+
+## 3. La méthode, pas à pas
+
+1. **Appliquer le style** une fois par module de figures, par `style.appliquer()`.
+2. **Appeler la fabrique** sur un axe matplotlib ordinaire ; elle ne crée ni figure ni axe, donc elle
+   se compose librement avec le reste.
+3. **Lire ce qu'elle renvoie** et l'écrire dans `results/`, pour que le README cite un fichier et non
+   un souvenir.
+4. **Enregistrer** par `style.enregistrer(fig, dossier, nom)`, qui écrit le PNG du README et le PDF
+   vectoriel du rapport côte à côte.
+5. **Engendrer le rapport** par `gvf rapport <depot>`, qui traduit le README en Typst et le compile.
+
+## 4. Ce que le traducteur de rapport couvre
+
+Il ne couvre pas tout le Markdown, seulement ce que les README du portefeuille emploient.
 
 | Élément Markdown | Ce qu'il devient |
 |---|---|
@@ -43,36 +97,44 @@ les deux et perdait toutes les figures. Ensuite, chaque texte qui n'est pas une 
 instruction Typst. Enfin, rien n'est ajouté au README : le rapport ne peut pas dire autre chose que
 lui.
 
-## 3. La méthode, pas à pas
-
-1. **Lire le README** du dépôt et en extraire le titre de niveau 1.
-2. **Traduire le corps**, bloc par bloc, en gardant l'ordre du fichier.
-3. **Composer le document** avec une page de titre, un pied de page numéroté et l'adresse du dépôt,
-   lue dans la configuration de git.
-4. **Compiler avec Typst**, la racine de compilation étant le dépôt lui-même pour que les figures de
-   `results/figures/` soient atteignables depuis `rapport/`.
-5. **Écrire le PDF et son source Typst** côte à côte, le second restant lisible et recompilable.
-
-## 4. S'en servir
+## 5. S'en servir
 
 ```bash
 uv sync --locked --all-extras
-uv run pytest                              # 13 tests fermés, sans réseau
+uv run pytest                              # 29 tests fermés, sans réseau
 uv run gvf rapport /chemin/vers/un/depot   # écrit rapport/rapport.pdf
 ```
 
-Depuis un dépôt du portefeuille, `uv run gvf rapport .` suffit. La compilation d'un rapport de huit
-pages avec trois figures prend moins d'une seconde.
+Dans un dépôt qui consomme le paquet, l'appel type tient en cinq lignes.
 
-## 5. Limites, avec leur statut
+```python
+import matplotlib.pyplot as plt
+from gvf.style import appliquer, enregistrer, formateur
+from gvf.figures import roc_ks
+
+appliquer()
+fig, ax = plt.subplots(figsize=(6.4, 5.2))
+mesures = roc_ks(ax, defaut_observe, score_du_modele)   # dessine ET renvoie
+ax.set_title(f"Le score sépare : aire {mesures['aire']:.3f}, Gini {mesures['gini']:.3f}")
+enregistrer(fig, "results/figures", "roc")
+```
+
+Les fabriques et le style vivent dans l'extra `figures`, qui tire matplotlib et numpy. Le générateur
+de rapport n'en dépend pas : un dépôt qui ne veut que le PDF n'installe ni l'un ni l'autre.
+
+## 6. Limites, avec leur statut
 
 | Limite | Statut |
 |---|---|
-| Le Markdown couvert est celui des README du portefeuille, pas la norme complète | déclaré ; les listes imbriquées, les notes de bas de page et le HTML brut ne sont pas traduits |
-| Les tableaux très larges débordent en petits caractères plutôt que de se replier | reconnu ; Typst répartit les colonnes, mais un tableau de neuf colonnes reste dense |
-| La police est celle du système, avec Helvetica en premier choix | déclaré ; un poste sans Helvetica prendra Arial puis DejaVu Sans |
-| Le résumé anglais reste dans le corps du rapport, sans page séparée | déclaré ; c'est la structure du README |
+| Les vingt-cinq dépôts existants n'ont pas été convertis à `gvf.style` | déclaré ; la conversion touche 24 fichiers et se fera dépôt par dépôt, à l'occasion d'une modification |
+| Le lissage de `ridgeline` emploie la règle de Silverman, qui suppose une densité proche de la normale | reconnu ; sur une distribution très asymétrique elle lisse trop, et le mode renvoyé porte l'erreur d'échantillonnage, mesurée à 0,11 sur 40 000 tirages |
+| La couleur du triangle suit le rang dans la colonne, pas la valeur brute | déclaré, et écrit sous l'axe ; sans cela les colonnes anciennes, seules complètes, écraseraient l'échelle |
+| Le Markdown couvert est celui des README du portefeuille, pas la norme complète | déclaré ; listes imbriquées, notes de bas de page et HTML brut ne sont pas traduits |
+| Les tableaux très larges débordent en petits caractères plutôt que de se replier | reconnu ; un tableau de neuf colonnes reste dense |
+| La police est celle du système, avec Helvetica en premier choix | déclaré ; un poste sans Helvetica prendra Arial puis DejaVu Sans, qui porte bien l'espace fine insécable du séparateur de milliers, vérifié dans sa table de caractères |
 
-## 6. Crédits, licence, citation
+## 7. Crédits, licence, citation
 
-Écrit en 2026 pour le portefeuille Finance de Guillaume Vaudescal. Code sous licence MIT.
+Écrit en 2026 pour le portefeuille Finance de Guillaume Vaudescal. Code sous licence MIT. La palette
+est celle d'Okabe et Ito, choisie parce que ses huit couleurs restent distinguables par les trois
+formes courantes de daltonisme.

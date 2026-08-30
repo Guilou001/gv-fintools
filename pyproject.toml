@@ -1,7 +1,7 @@
 [project]
 name = "gvf"
-version = "0.1.0"
-description = "Outils partagés du portefeuille : le rapport PDF d'un dépôt, engendré depuis son README"
+version = "0.2.0"
+description = "Outils partagés du portefeuille : la feuille de style des figures, sept fabriques vérifiées, et le rapport PDF engendré depuis le README"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
@@ -10,6 +10,9 @@ dependencies = [
     "typer>=0.12",
     "typst>=0.11",
 ]
+
+[project.optional-dependencies]
+figures = ["matplotlib>=3.9", "numpy>=2.0"]
 
 [project.scripts]
 gvf = "gvf.cli:app"
@@ -25,7 +28,7 @@ build-backend = "hatchling.build"
 packages = ["src/gvf"]
 
 [dependency-groups]
-dev = ["pypdf>=5.0", "pytest>=8.0", "ruff>=0.6"]
+dev = ["matplotlib>=3.9", "numpy>=2.0", "pypdf>=5.0", "pytest>=8.0", "ruff>=0.6"]
 
 [tool.ruff]
 line-length = 110
