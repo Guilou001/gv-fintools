@@ -92,6 +92,11 @@ def test_un_document_complet_se_compile(tmp_path):
     texte = "".join(p.extract_text() or "" for p in pypdf.PdfReader(chemin).pages)
     assert "Une section" in texte
     assert "Une citation de 2021" in texte
+    # le tableau doit être DANS le PDF, et pas seulement dans le Typst. La version 0.1 enfermait la
+    # table dans un par(), ce que Typst 0.15 traite en la supprimant sans lever d'erreur : les
+    # rapports se compilaient, et leurs tableaux étaient vides.
+    for cellule in ("A", "B", "1", "2"):
+        assert cellule in texte, f"cellule {cellule!r} absente du PDF : la table n'est pas rendue"
 
 
 def test_un_depot_sans_readme_est_refuse(tmp_path):

@@ -131,6 +131,7 @@ de rapport n'en dépend pas : un dépôt qui ne veut que le PDF n'installe ni l'
 | La couleur du triangle suit le rang dans la colonne, pas la valeur brute | déclaré, et écrit sous l'axe ; sans cela les colonnes anciennes, seules complètes, écraseraient l'échelle |
 | Le Markdown couvert est celui des README du portefeuille, pas la norme complète | déclaré ; listes imbriquées, notes de bas de page et HTML brut ne sont pas traduits |
 | Les tableaux très larges débordent en petits caractères plutôt que de se replier | reconnu ; un tableau de neuf colonnes reste dense |
+| La version 0.1 rendait des tableaux vides, sa règle de mise en forme enfermant la table dans un `par()` que Typst supprime sans lever d erreur | corrigé en 0.2.1, et un test compile désormais un document et cherche les cellules DANS le PDF ; les 24 rapports produits avant cette date sont à régénérer |
 | La police est celle du système, avec Helvetica en premier choix | déclaré ; un poste sans Helvetica prendra Arial puis DejaVu Sans, qui porte bien l'espace fine insécable du séparateur de milliers, vérifié dans sa table de caractères |
 
 ## 7. Crédits, licence, citation
