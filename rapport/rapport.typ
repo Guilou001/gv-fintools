@@ -1,4 +1,4 @@
-#set document(title: "gv-fintools : la feuille de style des figures du portefeuille, et son rapport PDF", author: "Guillaume Vaudescal")
+#set document(title: "gv-fintools : la feuille de style des figures du portefeuille, son chargeur de données et son rapport PDF", author: "Guillaume Vaudescal")
 #set page(
   paper: "a4",
   margin: (x: 2.2cm, y: 2.4cm),
@@ -30,7 +30,7 @@
 
 #align(center)[
   #block(width: 100%)[
-    #text(size: 18pt, weight: "bold")[gv-fintools : la feuille de style des figures du portefeuille, et son rapport PDF]
+    #text(size: 18pt, weight: "bold")[gv-fintools : la feuille de style des figures du portefeuille, son chargeur de données et son rapport PDF]
     #v(0.6em)
     #text(size: 10pt, fill: luma(70))[Guillaume Vaudescal · 2026-08-30 · #link("https://github.com/Guilou001/gv-fintools")[Guilou001/gv-fintools]]
   ]
@@ -41,9 +41,9 @@
 
 Les vingt-cinq dépôts du portefeuille produisent des figures et des rapports. Ils le faisaient chacun de leur côté, en recopiant la même palette et la même fonction de réglage. Cet outil met les deux choses à un seul endroit.
 
-*Résultat en une phrase.* Sept fabriques de figures qui rendent les nombres qu'elles dessinent, une feuille de style qui écrit les axes en français et enregistre en PNG et en PDF vectoriel, et une commande qui transforme le README d'un dépôt en rapport composé : *29 tests fermés*, dont un qui compile un document entier et relit le PDF produit.
+*Résultat en une phrase.* Sept fabriques de figures qui rendent les nombres qu'elles dessinent, une feuille de style qui écrit les axes en français et enregistre en PNG et en PDF vectoriel, un chargeur des relevés du BSIF qui pose un entrepôt DuckDB sous des vues lisibles, et une commande qui transforme le README d'un dépôt en rapport composé : *38 tests fermés*, dont un qui compile un document entier et relit le PDF produit.
 
-_Summary in English. A shared plotting layer for a portfolio of finance repositories: seven chart factories (waterfall, ROC and KS, transition matrix, fan chart, tornado, ridgeline, run-off triangle), a French-locale style sheet with vector output, and a Markdown to Typst report generator. Every factory returns the numbers it draws, so the tests check arithmetic rather than pixels._
+_Summary in English. A shared layer for a portfolio of finance repositories: seven chart factories (waterfall, ROC and KS, transition matrix, fan chart, tornado, ridgeline, run-off triangle), a French-locale style sheet with vector output, a loader for OSFI's Canadian regulatory returns that builds a DuckDB warehouse behind readable views, and a Markdown to Typst report generator. Every factory returns the numbers it draws, so the tests check arithmetic rather than pixels._
 
 == 1. Les deux problèmes que cet outil règle
 
@@ -135,9 +135,33 @@ Il ne couvre pas tout le Markdown, seulement ce que les README du portefeuille e
 
 Comment lire ce tableau, en trois constats. D'abord, la distinction entre image relative et image distante est ce qui sépare une figure du dépôt d'un écusson d'état ; la première version confondait les deux et perdait toutes les figures. Ensuite, chaque texte qui n'est pas une structure reconnue est échappé caractère par caractère, faute de quoi un dièse ou une étoile du texte deviendrait une instruction Typst. Enfin, rien n'est ajouté au README : le rapport ne peut pas dire autre chose que lui.
 
+== 4 bis. Le chargeur des relevés du BSIF
+
+Le Bureau du surintendant des institutions financières publie sur le portail du gouvernement ouvert ce que chaque banque lui déclare, relevé par relevé. Plusieurs dépôts du portefeuille lisent les mêmes fichiers, et le portail a déjà rendu un relevé inactif au premier trimestre de 2024 : le jour où une adresse change, il vaut mieux n'avoir qu'un endroit à corriger.
+
+Le module #raw("gvf.osfi") télécharge un relevé, le range dans un entrepôt DuckDB et pose au-dessus des vues aux colonnes utilisables. Il ne calcule rien : le sens de chaque poste appartient au dépôt qui s'en sert.
+
+#raw("from gvf import osfi\n\nreleves = [osfi.BANQUES[\"p3\"], osfi.BANQUES[\"m4\"]]\nosfi.tout_telecharger(releves)\nco = osfi.construire_entrepot(releves, vues={\"resultat\": \"p3\", \"bilan\": \"m4\"})\nco.execute(\"SELECT exercice, trimestre, valeur FROM resultat WHERE poste = '8408'\")", block: true, lang: "python")
+
+Trois pièges qu'il désamorce, tous mesurés.
+
+- *Le type des identifiants.* Le numéro d'institution et le code de poste sont des identifiants,
+
+pas des quantités. Sans forçage, un fichier dont tous les codes seraient numériques se lirait en nombres, « 0488 » deviendrait 488, et toute recherche par code échouerait *sans rien signaler*.
+
+- *L'unité de temps.* Les relevés trimestriels portent un exercice fiscal, les mensuels une date
+
+civile. Les vues les exposent différemment plutôt que de faire croire qu'elles se joignent.
+
+- *Le nom des colonnes*, qui porte les deux langues séparées par une barre oblique. Les vues les
+
+renomment une fois pour toutes.
+
+Le chargeur vit dans l'extra #raw("osfi"), qui tire DuckDB et truststore. Un dépôt qui ne veut que les figures n'installe ni l'un ni l'autre.
+
 == 5. S'en servir
 
-#raw("uv sync --locked --all-extras\nuv run pytest                              # 29 tests fermés, sans réseau\nuv run gvf rapport /chemin/vers/un/depot   # écrit rapport/rapport.pdf", block: true, lang: "bash")
+#raw("uv sync --locked --all-extras\nuv run pytest                              # 38 tests fermés, sans réseau\nuv run gvf rapport /chemin/vers/un/depot   # écrit rapport/rapport.pdf", block: true, lang: "bash")
 
 Dans un dépôt qui consomme le paquet, l'appel type tient en cinq lignes.
 
@@ -155,7 +179,11 @@ Les fabriques et le style vivent dans l'extra #raw("figures"), qui tire matplotl
     [*Limite*],
     [*Statut*],
     [Les vingt-cinq dépôts existants n'ont pas été convertis à #raw("gvf.style")],
-    [déclaré ; la conversion touche 24 fichiers et se fera dépôt par dépôt, à l'occasion d'une modification],
+    [corrigé le 2026-08-30 pour dix-sept d'entre eux ; les six dépôts #raw("uqam-") et #raw("04-memoire-uqam-2024") gardent leur copie locale, parce qu'ils citent un travail existant],
+    [Le chargeur ne vérifie pas l'empreinte des fichiers téléchargés],
+    [déclaré ; il compare la taille à celle mesurée le 2026-08-30, ce qui repère un téléchargement tronqué mais pas un fichier modifié],
+    [Le portail ne publie pas la date de clôture d'exercice de chaque institution],
+    [déclaré ; joindre un relevé trimestriel fiscal à un relevé mensuel civil reste au dépôt qui s'en sert, et le module ne le fait pas à sa place],
     [Le lissage de #raw("ridgeline") emploie la règle de Silverman, qui suppose une densité proche de la normale],
     [reconnu ; sur une distribution très asymétrique elle lisse trop, et le mode renvoyé porte l'erreur d'échantillonnage, mesurée à 0,11 sur 40 000 tirages],
     [La couleur du triangle suit le rang dans la colonne, pas la valeur brute],
