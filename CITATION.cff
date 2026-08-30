@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: "gv-fintools : outils partagés du portefeuille Finance"
+message: "Si vous utilisez ce dépôt, citez-le comme suit."
+type: software
+authors:
+  - family-names: Vaudescal
+    given-names: Guillaume
+repository-code: "https://github.com/Guilou001/gv-fintools"
+license: MIT
+version: 0.1.0
+date-released: "2026-08-29"
