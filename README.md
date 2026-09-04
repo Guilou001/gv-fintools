@@ -77,6 +77,8 @@ estimer.
 4. **Enregistrer** par `style.enregistrer(fig, dossier, nom)`, qui écrit le PNG du README et le PDF
    vectoriel du rapport côte à côte.
 5. **Engendrer le rapport** par `gvf rapport <depot>`, qui traduit le README en Typst et le compile.
+5. **Graduer** un axe logarithmique par `style.axe_log_lisible(ax)`, qui écrit 1, 2, 5, 10, 20, 50 en
+   nombres ordinaires là où matplotlib n'écrit que les puissances de dix.
 
 ## 4. Ce que le traducteur de rapport couvre
 
