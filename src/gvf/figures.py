@@ -20,8 +20,14 @@ import numpy as np
 from .style import GRIS, OKABE_ITO, fr
 
 
-def cascade(ax, etiquettes: list[str], valeurs: list[float], depart: float = 0.0,
-            total: str | None = "Total", decimales: int = 1) -> np.ndarray:
+def cascade(
+    ax,
+    etiquettes: list[str],
+    valeurs: list[float],
+    depart: float = 0.0,
+    total: str | None = "Total",
+    decimales: int = 1,
+) -> np.ndarray:
     """Une cascade : d'où part une grandeur, ce qui l'augmente, ce qui la diminue, où elle arrive.
 
     Les barres flottent entre le cumul avant et le cumul après, si bien que la hauteur d'une barre
@@ -36,11 +42,22 @@ def cascade(ax, etiquettes: list[str], valeurs: list[float], depart: float = 0.0
         bas, haut = min(cumuls[i], cumuls[i + 1]), max(cumuls[i], cumuls[i + 1])
         couleur = OKABE_ITO[2] if v >= 0 else OKABE_ITO[3]
         ax.bar(positions[i], haut - bas, bottom=bas, color=couleur, width=0.62)
-        ax.annotate(("+" if v > 0 else "") + fr(v, decimales), (positions[i], haut),
-                    ha="center", va="bottom", fontsize=8.5, color=GRIS)
+        ax.annotate(
+            ("+" if v > 0 else "") + fr(v, decimales),
+            (positions[i], haut),
+            ha="center",
+            va="bottom",
+            fontsize=8.5,
+            color=GRIS,
+        )
         if i:
-            ax.plot([positions[i] - 1 + 0.31, positions[i] - 0.31], [cumuls[i]] * 2,
-                    color=GRIS, linewidth=0.7, linestyle=":")
+            ax.plot(
+                [positions[i] - 1 + 0.31, positions[i] - 0.31],
+                [cumuls[i]] * 2,
+                color=GRIS,
+                linewidth=0.7,
+                linestyle=":",
+            )
 
     noms = list(etiquettes)
     sommets = [max(cumuls[i], cumuls[i + 1]) for i in range(len(valeurs))]
@@ -48,8 +65,14 @@ def cascade(ax, etiquettes: list[str], valeurs: list[float], depart: float = 0.0
         # la barre de total part de zéro et non du cumul précédent : une barre flottante donnerait
         # à lire sa hauteur comme un total, alors qu'elle ne serait qu'une variation
         ax.bar(len(valeurs), cumuls[-1], bottom=0.0, color=OKABE_ITO[0], width=0.62)
-        ax.annotate(fr(cumuls[-1], decimales), (len(valeurs), max(cumuls[-1], 0.0)),
-                    ha="center", va="bottom", fontsize=8.5, color=GRIS)
+        ax.annotate(
+            fr(cumuls[-1], decimales),
+            (len(valeurs), max(cumuls[-1], 0.0)),
+            ha="center",
+            va="bottom",
+            fontsize=8.5,
+            color=GRIS,
+        )
         noms = noms + [total]
         sommets.append(max(cumuls[-1], 0.0))
     ax.set_xticks(range(len(noms)))
@@ -96,15 +119,27 @@ def roc_ks(ax, verite, score, etiquette: str = "modèle", tracer_ks: bool = True
     ax.plot([0, 1], [0, 1], color=GRIS, linewidth=0.9, linestyle="--", label="hasard : aire 0,500")
     if tracer_ks:
         ax.vlines(fpr[i_ks], fpr[i_ks], tpr[i_ks], color=OKABE_ITO[3], linewidth=1.6)
-        ax.annotate(f"KS = {fr(ks, 3)}", (fpr[i_ks], (tpr[i_ks] + fpr[i_ks]) / 2),
-                    xytext=(8, 0), textcoords="offset points", fontsize=9, color=OKABE_ITO[3])
+        ax.annotate(
+            f"KS = {fr(ks, 3)}",
+            (fpr[i_ks], (tpr[i_ks] + fpr[i_ks]) / 2),
+            xytext=(8, 0),
+            textcoords="offset points",
+            fontsize=9,
+            color=OKABE_ITO[3],
+        )
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_xlabel("Part des sains classés au-dessus du seuil")
     ax.set_ylabel("Part des défauts classés au-dessus du seuil")
     ax.legend(loc="lower right")
-    return {"aire": float(aire), "gini": float(2 * aire - 1), "ks": ks, "seuil_ks": seuil,
-            "defauts": int(positifs), "sains": int(negatifs)}
+    return {
+        "aire": float(aire),
+        "gini": float(2 * aire - 1),
+        "ks": ks,
+        "seuil_ks": seuil,
+        "defauts": int(positifs),
+        "sains": int(negatifs),
+    }
 
 
 def _rangs_moyens(x: np.ndarray) -> np.ndarray:
@@ -120,13 +155,12 @@ def _rangs_moyens(x: np.ndarray) -> np.ndarray:
         j = i
         while j + 1 < len(x) and tries[j + 1] == tries[i]:
             j += 1
-        rangs[ordre[i:j + 1]] = (i + j) / 2 + 1
+        rangs[ordre[i : j + 1]] = (i + j) / 2 + 1
         i = j + 1
     return rangs
 
 
-def matrice_transition(ax, matrice, etats: list[str], decimales: int = 2,
-                       unite: str = "%") -> np.ndarray:
+def matrice_transition(ax, matrice, etats: list[str], decimales: int = 2, unite: str = "%") -> np.ndarray:
     """Une matrice de migration : ligne, l'état de départ ; colonne, l'état d'arrivée.
 
     La diagonale porte la persistance et concentre presque toute la masse, ce qui écrase l'échelle
@@ -143,21 +177,33 @@ def matrice_transition(ax, matrice, etats: list[str], decimales: int = 2,
     for i in range(len(etats)):
         for j in range(len(etats)):
             fonce = i == j or m[i, j] > 0.6 * plafond
-            ax.text(j, i, fr(m[i, j], decimales), ha="center", va="center", fontsize=8,
-                    color="white" if fonce else GRIS)
+            ax.text(
+                j,
+                i,
+                fr(m[i, j], decimales),
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white" if fonce else GRIS,
+            )
     ax.set_xticks(range(len(etats)), etats)
     ax.set_yticks(range(len(etats)), etats)
     ax.set_xlabel("État à la fin de l'année")
     ax.set_ylabel("État au début de l'année")
     ax.grid(False)
     barre = ax.figure.colorbar(image, ax=ax, fraction=0.045)
-    barre.set_label(f"Probabilité de transition ({unite}), échelle bornée hors diagonale",
-                    fontsize=8.5)
+    barre.set_label(f"Probabilité de transition ({unite}), échelle bornée hors diagonale", fontsize=8.5)
     return m
 
 
-def eventail(ax, x, trajectoires, quantiles=(5, 25, 50, 75, 95), couleur: str = OKABE_ITO[0],
-             etiquette_mediane: str = "médiane") -> dict:
+def eventail(
+    ax,
+    x,
+    trajectoires,
+    quantiles=(5, 25, 50, 75, 95),
+    couleur: str = OKABE_ITO[0],
+    etiquette_mediane: str = "médiane",
+) -> dict:
     """Un éventail de trajectoires simulées, résumé par ses quantiles.
 
     Dessiner mille trajectoires produit une tache noire. Dessiner leurs quantiles produit une bande
@@ -174,8 +220,15 @@ def eventail(ax, x, trajectoires, quantiles=(5, 25, 50, 75, 95), couleur: str = 
         haut = 100 - p
         if haut not in q:
             continue
-        ax.fill_between(x, q[p], q[haut], color=couleur, alpha=0.15 + 0.13 * rang, linewidth=0,
-                        label=f"{fr(100 - 2 * p)} % des tirages")
+        ax.fill_between(
+            x,
+            q[p],
+            q[haut],
+            color=couleur,
+            alpha=0.15 + 0.13 * rang,
+            linewidth=0,
+            label=f"{fr(100 - 2 * p)} % des tirages",
+        )
     if 50 in q:
         ax.plot(x, q[50], color=couleur, linewidth=2.0, label=etiquette_mediane)
     return {p: v for p, v in q.items()}
@@ -197,17 +250,22 @@ def tornade(ax, noms: list[str], bas, haut, base: float = 0.0, decimales: int = 
         ax.barh(rang, droite - gauche, left=gauche, color=OKABE_ITO[3], height=0.6)
         gauche, droite = min(haut[i], base), max(haut[i], base)
         ax.barh(rang, droite - gauche, left=gauche, color=OKABE_ITO[2], height=0.6)
-        ax.annotate(f"{fr(bas[i], decimales)} … {fr(haut[i], decimales)}",
-                    (max(bas[i], haut[i]), rang), xytext=(6, 0), textcoords="offset points",
-                    va="center", fontsize=8, color=GRIS)
+        ax.annotate(
+            f"{fr(bas[i], decimales)} … {fr(haut[i], decimales)}",
+            (max(bas[i], haut[i]), rang),
+            xytext=(6, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=8,
+            color=GRIS,
+        )
     ax.axvline(base, color=GRIS, linewidth=1.0)
     ax.set_yticks(range(len(ordre)), [noms[i] for i in ordre])
     ax.set_ylim(-0.7, len(ordre) - 0.3)
     return ordre
 
 
-def ridgeline(ax, groupes: dict, points: int = 256, hauteur: float = 1.6,
-              etendue: float = 0.08) -> dict:
+def ridgeline(ax, groupes: dict, points: int = 256, hauteur: float = 1.6, etendue: float = 0.08) -> dict:
     """Des distributions empilées, une par groupe, pour les comparer sans les superposer.
 
     Chaque densité est lissée par un noyau gaussien de largeur choisie par la règle de Silverman,
@@ -224,11 +282,20 @@ def ridgeline(ax, groupes: dict, points: int = 256, hauteur: float = 1.6,
     for rang, (nom, v) in enumerate(zip(noms, valeurs, strict=True)):
         densite = _noyau_gaussien(v, grille)
         y = rang * hauteur
-        ax.fill_between(grille, y, y + densite / densite.max() * hauteur * 0.92,
-                        color=OKABE_ITO[rang % len(OKABE_ITO)], alpha=0.72, linewidth=0)
+        ax.fill_between(
+            grille,
+            y,
+            y + densite / densite.max() * hauteur * 0.92,
+            color=OKABE_ITO[rang % len(OKABE_ITO)],
+            alpha=0.72,
+            linewidth=0,
+        )
         ax.plot(grille, y + densite / densite.max() * hauteur * 0.92, color=GRIS, linewidth=0.7)
-        resume[nom] = {"moyenne": float(v.mean()), "mediane": float(np.median(v)),
-                       "mode": float(grille[int(np.argmax(densite))])}
+        resume[nom] = {
+            "moyenne": float(v.mean()),
+            "mediane": float(np.median(v)),
+            "mode": float(grille[int(np.argmax(densite))]),
+        }
     ax.set_yticks([r * hauteur for r in range(len(noms))], noms)
     ax.set_ylim(-hauteur * 0.15, (len(noms) - 1) * hauteur + hauteur)
     ax.grid(axis="y", visible=False)
@@ -238,17 +305,19 @@ def ridgeline(ax, groupes: dict, points: int = 256, hauteur: float = 1.6,
 def _noyau_gaussien(echantillon: np.ndarray, grille: np.ndarray) -> np.ndarray:
     """La densité lissée, largeur de fenêtre par la règle de Silverman."""
     n = len(echantillon)
-    dispersion = min(echantillon.std(ddof=1), (np.percentile(echantillon, 75)
-                                               - np.percentile(echantillon, 25)) / 1.349)
+    dispersion = min(
+        echantillon.std(ddof=1), (np.percentile(echantillon, 75) - np.percentile(echantillon, 25)) / 1.349
+    )
     if not dispersion:
         dispersion = 1.0
     h = 0.9 * dispersion * n ** (-0.2)
     ecarts = (grille[:, None] - echantillon[None, :]) / h
-    return np.exp(-0.5 * ecarts ** 2).sum(axis=1) / (n * h * np.sqrt(2 * np.pi))
+    return np.exp(-0.5 * ecarts**2).sum(axis=1) / (n * h * np.sqrt(2 * np.pi))
 
 
-def triangle(ax, matrice, annees=None, retards=None, decimales: int = 0,
-             titre_valeur: str = "Sinistres cumulés") -> np.ndarray:
+def triangle(
+    ax, matrice, annees=None, retards=None, decimales: int = 0, titre_valeur: str = "Sinistres cumulés"
+) -> np.ndarray:
     """Le triangle de développement : ligne, l'année de survenance ; colonne, le retard de règlement.
 
     La partie inférieure droite est vide parce qu'elle n'est pas encore arrivée : c'est exactement ce
@@ -275,12 +344,20 @@ def triangle(ax, matrice, annees=None, retards=None, decimales: int = 0,
         for j in range(m.shape[1]):
             if np.isnan(m[i, j]):
                 continue
-            ax.text(j, i, fr(m[i, j], decimales), ha="center", va="center", fontsize=7.5,
-                    color="white" if rangs[i, j] > 0.62 else GRIS)
+            ax.text(
+                j,
+                i,
+                fr(m[i, j], decimales),
+                ha="center",
+                va="center",
+                fontsize=7.5,
+                color="white" if rangs[i, j] > 0.62 else GRIS,
+            )
     ax.set_xticks(range(m.shape[1]), [str(r) for r in retards])
     ax.set_yticks(range(m.shape[0]), [str(a) for a in annees])
-    ax.set_xlabel(f"Retard de développement, en années\n{titre_valeur}, couleur selon le rang "
-                  "dans la colonne")
+    ax.set_xlabel(
+        f"Retard de développement, en années\n{titre_valeur}, couleur selon le rang dans la colonne"
+    )
     ax.set_ylabel("Année de survenance")
     ax.grid(False)
     return m

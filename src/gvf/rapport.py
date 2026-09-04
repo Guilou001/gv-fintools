@@ -70,8 +70,7 @@ def _depot_de(racine: Path) -> str:
     return "https://github.com/Guilou001"
 
 
-def engendrer(racine: Path, destination: Path | None = None,
-              date: str | None = None) -> Path:
+def engendrer(racine: Path, destination: Path | None = None, date: str | None = None) -> Path:
     """Compile le README du dépôt en un rapport PDF, et rend le chemin écrit."""
     racine = racine.resolve()
     readme = racine / "README.md"
@@ -97,6 +96,5 @@ def engendrer(racine: Path, destination: Path | None = None,
     (destination.parent / f"{destination.stem}.typ").write_text(source)
     # la racine de compilation est le dépôt : sans elle, Typst refuse les chemins qui
     # remontent du dossier rapport/ vers results/figures/
-    destination.write_bytes(
-        typst.compile(destination.parent / f"{destination.stem}.typ", root=racine))
+    destination.write_bytes(typst.compile(destination.parent / f"{destination.stem}.typ", root=racine))
     return destination

@@ -13,15 +13,17 @@ ENTETE_TRIMESTRIEL = (
     '"Total All Banks/Total Industry Groups/FIs","Total Banques/Total des groupe sectoriel/IFFs",'
     '"Industry Group","Groupe Sectoriel","Return/Relevé","Return Title","Titre du relevé",'
     '"Data Point Address/Adresse de point de donnée","Data Point Address Label",'
-    "\"Libellé de l'adresse du point de données\",\"FI Inactive Date/Date d'inactivité IFF\","
-    '"Measure Value/Valeur de mesure"')
+    '"Libellé de l\'adresse du point de données","FI Inactive Date/Date d\'inactivité IFF",'
+    '"Measure Value/Valeur de mesure"'
+)
 ENTETE_MENSUEL = (
     '"Calendar Year/Année civile","Calendar Month/Mois civil","Id",'
     '"Total All Banks/Total Industry Groups/FIs","Total Banques/Total des groupe sectoriel/IFFs",'
     '"Industry Group","Groupe Sectoriel","Return/Relevé","Return Title","Titre du relevé",'
     '"Data Point Address/Adresse de point de donnée","Data Point Address Label",'
-    "\"Libellé de l'adresse du point de données\",\"FI Inactive Date/Date d'inactivité IFF\","
-    '"Measure Value/Valeur de mesure"')
+    '"Libellé de l\'adresse du point de données","FI Inactive Date/Date d\'inactivité IFF",'
+    '"Measure Value/Valeur de mesure"'
+)
 
 
 @pytest.fixture
@@ -33,17 +35,19 @@ def racine(tmp_path):
     d = tmp_path / "raw"
     d.mkdir()
     (d / osfi.BANQUES["p3"].fichier).write_text(
-        f'{ENTETE_TRIMESTRIEL}\n'
+        f"{ENTETE_TRIMESTRIEL}\n"
         '"2025","Q4 - 2025","T4 - 2025","27997","Banque Royale","Banque Royale","Domestic Banks",'
         '"Banques nationales","P3","t","t","8408","revenu net","revenu net","9999-12-31","1234.00"\n'
         '"2024","Q4 - 2024","T4 - 2024","27997","Ancien nom","Ancien nom","Domestic Banks",'
         '"Banques nationales","P3","t","t","0488","autre","autre","9999-12-31","99.00"\n',
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     (d / osfi.BANQUES["m4"].fichier).write_text(
-        f'{ENTETE_MENSUEL}\n'
+        f"{ENTETE_MENSUEL}\n"
         '"2025","2025-10-31","27997","Banque Royale","Banque Royale","Domestic Banks",'
         '"Banques nationales","M4","t","t","1045","actif","actif","9999-12-31","5678.00"\n',
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     return d
 
 
@@ -52,7 +56,9 @@ def entrepot(racine, tmp_path):
     return osfi.construire_entrepot(
         [osfi.BANQUES["p3"], osfi.BANQUES["m4"]],
         vues={"resultat": "p3", "bilan": "m4"},
-        racine=racine, entrepot=tmp_path / "essai.duckdb")
+        racine=racine,
+        entrepot=tmp_path / "essai.duckdb",
+    )
 
 
 def test_la_vue_trimestrielle_porte_l_exercice_et_le_trimestre(entrepot):
@@ -96,8 +102,9 @@ def test_la_mesure_compte_ce_qu_il_y_a(entrepot):
 
 def test_un_fichier_absent_est_signale(tmp_path):
     with pytest.raises(FileNotFoundError):
-        osfi.construire_entrepot([osfi.BANQUES["p3"]], vues={"resultat": "p3"},
-                                 racine=tmp_path, entrepot=tmp_path / "x.duckdb")
+        osfi.construire_entrepot(
+            [osfi.BANQUES["p3"]], vues={"resultat": "p3"}, racine=tmp_path, entrepot=tmp_path / "x.duckdb"
+        )
 
 
 def test_l_adresse_de_telechargement_se_compose_du_jeu_et_de_la_ressource():

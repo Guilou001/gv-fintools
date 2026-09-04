@@ -22,6 +22,8 @@ TITRE = re.compile(r"^(#{1,6})\s+(.*)$")
 PUCE = re.compile(r"^(\s*)[-*]\s+(.*)$")
 NUMERO = re.compile(r"^(\s*)(\d+)\.\s+(.*)$")
 SEPARATEUR = re.compile(r"^\s*\|?[\s:|-]+\|[\s:|-]*$")
+DETAILS = re.compile(r"^\s*</?details>\s*$")
+RESUME_DETAILS = re.compile(r"^\s*<summary>(.*?)</summary>\s*$")
 
 
 @dataclass
@@ -47,7 +49,7 @@ def _liens(texte: str) -> str:
     """Traduit les liens Markdown, en échappant le libellé mais pas l'adresse."""
     morceaux, position = [], 0
     for trouve in re.finditer(r"\[([^\]]+)\]\(([^)]+)\)", texte):
-        morceaux.append(_marques(texte[position:trouve.start()]))
+        morceaux.append(_marques(texte[position : trouve.start()]))
         libelle, adresse = trouve.group(1), trouve.group(2)
         morceaux.append(f'#link("{adresse}")[{_marques(libelle)}]')
         position = trouve.end()
@@ -60,7 +62,7 @@ def _marques(texte: str) -> str:
     sortie, position = [], 0
     motif = re.compile(r"\*\*(.+?)\*\*|(?<!\w)\*(?!\s)(.+?)(?<!\s)\*(?!\w)|`([^`]+)`")
     for trouve in motif.finditer(texte):
-        sortie.append(echapper(texte[position:trouve.start()]))
+        sortie.append(echapper(texte[position : trouve.start()]))
         gras, italique, code = trouve.groups()
         if gras is not None:
             sortie.append(f"*{echapper(gras)}*")
@@ -93,13 +95,15 @@ def _tableau(lignes: list[str]) -> str:
         rangee = (rangee + [""] * largeur)[:largeur]
         cellules += [f"[{ligne(c)}]" for c in rangee]
     contenu = ",\n    ".join(cellules)
-    return ("#table(\n"
-            f"  columns: {largeur},\n"
-            "  stroke: (x, y) => if y == 0 { (bottom: 0.6pt) } else { none },\n"
-            "  align: left + top,\n"
-            "  inset: 5pt,\n"
-            f"    {contenu},\n"
-            ")")
+    return (
+        "#table(\n"
+        f"  columns: {largeur},\n"
+        "  stroke: (x, y) => if y == 0 { (bottom: 0.6pt) } else { none },\n"
+        "  align: left + top,\n"
+        "  inset: 5pt,\n"
+        f"    {contenu},\n"
+        ")"
+    )
 
 
 def _bloc_code(lignes: list[str], langue: str) -> str:
@@ -116,6 +120,17 @@ def convertir(source: str, racine: str = ".") -> Document:
     i = 0
     while i < len(lignes):
         courante = lignes[i]
+
+        # GitHub peut replier un résumé secondaire avec details/summary. Sur papier, le
+        # contenu reste visible, mais les balises HTML deviennent un titre ordinaire.
+        if DETAILS.match(courante):
+            i += 1
+            continue
+        trouve = RESUME_DETAILS.match(courante)
+        if trouve:
+            sortie.append("== " + ligne(trouve.group(1)))
+            i += 1
+            continue
 
         # un écusson cliquable est une image distante enveloppée dans un lien
         if ECUSSON.match(courante) and not IMAGE.match(courante):
@@ -139,8 +154,7 @@ def convertir(source: str, racine: str = ".") -> Document:
             if chemin.startswith(("http://", "https://")):
                 i += 1
                 continue
-            sortie.append(f'#figure(image("{racine}/{chemin}", width: 100%), '
-                          f"caption: [{ligne(legende)}])")
+            sortie.append(f'#figure(image("{racine}/{chemin}", width: 100%), caption: [{ligne(legende)}])')
             i += 1
             continue
 
@@ -175,8 +189,11 @@ def convertir(source: str, racine: str = ".") -> Document:
         trouve = PUCE.match(courante) or NUMERO.match(courante)
         if trouve:
             bloc = []
-            while i < len(lignes) and (PUCE.match(lignes[i]) or NUMERO.match(lignes[i])
-                                       or (lignes[i].startswith("   ") and lignes[i].strip())):
+            while i < len(lignes) and (
+                PUCE.match(lignes[i])
+                or NUMERO.match(lignes[i])
+                or (lignes[i].startswith("   ") and lignes[i].strip())
+            ):
                 bloc.append(lignes[i])
                 i += 1
             sortie.append(_liste(bloc))

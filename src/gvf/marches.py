@@ -88,7 +88,8 @@ def _cle(nom: str) -> str:
     if not valeur:
         raise RuntimeError(
             f"la variable {nom} est absente. La renseigner dans l'environnement ou dans "
-            f"{FICHIER_DE_CLES}, jamais dans le code ni dans un dépôt.")
+            f"{FICHIER_DE_CLES}, jamais dans le code ni dans un dépôt."
+        )
     return valeur
 
 
@@ -97,10 +98,10 @@ class Requete:
     """Ce qu'on demande : un symbole, une fenêtre, un pas, et un flux."""
 
     symbole: str
-    debut: str              # date ISO, incluse
-    fin: str                # date ISO, incluse
+    debut: str  # date ISO, incluse
+    fin: str  # date ISO, incluse
     pas: str = "1Min"
-    flux: str = "sip"       # « sip » pour le consolidé, « iex » pour le seul flux IEX
+    flux: str = "sip"  # « sip » pour le consolidé, « iex » pour le seul flux IEX
     ajustement: str = "brut"  # « brut » ou « ajuste » ; voir le piège en tête de module
 
     def __post_init__(self) -> None:
@@ -110,8 +111,10 @@ class Requete:
             raise ValueError("l'ajustement est « brut » ou « ajuste »")
 
     def nom_de_fichier(self, source: str) -> str:
-        return (f"{source}_{self.symbole}_{self.pas}_{self.flux}_{self.ajustement}"
-                f"_{self.debut}_{self.fin}.parquet")
+        return (
+            f"{source}_{self.symbole}_{self.pas}_{self.flux}_{self.ajustement}"
+            f"_{self.debut}_{self.fin}.parquet"
+        )
 
 
 def _lire_json(url: str, entetes: dict[str, str], essais: int = 4):
@@ -127,7 +130,7 @@ def _lire_json(url: str, entetes: dict[str, str], essais: int = 4):
             derniere = erreur
             if erreur.code not in (429, 500, 502, 503, 504):
                 raise
-        except (urllib.error.URLError, TimeoutError) as erreur:      # pragma: no cover - réseau
+        except (urllib.error.URLError, TimeoutError) as erreur:  # pragma: no cover - réseau
             derniere = erreur
         time.sleep(attente)
         attente *= 2
@@ -138,8 +141,18 @@ def _en_table(lignes: list[dict], colonnes: dict[str, str]):
     import pandas as pd
 
     if not lignes:
-        return pd.DataFrame(columns=["horodatage", "ouverture", "haut", "bas", "cloture",
-                                     "volume", "transactions", "prix_moyen"])
+        return pd.DataFrame(
+            columns=[
+                "horodatage",
+                "ouverture",
+                "haut",
+                "bas",
+                "cloture",
+                "volume",
+                "transactions",
+                "prix_moyen",
+            ]
+        )
     table = pd.DataFrame(lignes).rename(columns=colonnes)
     manquantes = [c for c in ("transactions", "prix_moyen") if c not in table]
     for c in manquantes:
@@ -153,8 +166,7 @@ def _en_table(lignes: list[dict], colonnes: dict[str, str]):
         table["horodatage"] = pd.to_datetime(horodatage, unit="ms", utc=True)
     else:
         table["horodatage"] = pd.to_datetime(horodatage, utc=True, format="mixed")
-    ordre = ["horodatage", "ouverture", "haut", "bas", "cloture", "volume", "transactions",
-             "prix_moyen"]
+    ordre = ["horodatage", "ouverture", "haut", "bas", "cloture", "volume", "transactions", "prix_moyen"]
     return table[ordre].sort_values("horodatage").reset_index(drop=True)
 
 
@@ -172,33 +184,46 @@ def barres_alpaca(r: Requete, cache: Path = CACHE, force: bool = False):
     if chemin.exists() and not force:
         return pd.read_parquet(chemin)
 
-    entetes = {"APCA-API-KEY-ID": _cle("ALPACA_KEY_ID"),
-               "APCA-API-SECRET-KEY": _cle("ALPACA_SECRET_KEY")}
-    parametres = {"symbols": r.symbole, "timeframe": r.pas, "feed": r.flux, "limit": "10000",
-                  "start": f"{r.debut}T00:00:00Z", "end": f"{r.fin}T23:59:59Z",
-                  "adjustment": "raw" if r.ajustement == "brut" else "all"}
+    entetes = {"APCA-API-KEY-ID": _cle("ALPACA_KEY_ID"), "APCA-API-SECRET-KEY": _cle("ALPACA_SECRET_KEY")}
+    parametres = {
+        "symbols": r.symbole,
+        "timeframe": r.pas,
+        "feed": r.flux,
+        "limit": "10000",
+        "start": f"{r.debut}T00:00:00Z",
+        "end": f"{r.fin}T23:59:59Z",
+        "adjustment": "raw" if r.ajustement == "brut" else "all",
+    }
     lignes: list[dict] = []
     jeton = None
     while True:
         if jeton:
             parametres["page_token"] = jeton
-        url = ("https://data.alpaca.markets/v2/stocks/bars?"
-               + urllib.parse.urlencode(parametres))
+        url = "https://data.alpaca.markets/v2/stocks/bars?" + urllib.parse.urlencode(parametres)
         reponse = _lire_json(url, entetes)
         lignes.extend((reponse.get("bars") or {}).get(r.symbole) or [])
         jeton = reponse.get("next_page_token")
         if not jeton:
             break
-    table = _en_table(lignes, {"t": "horodatage", "o": "ouverture", "h": "haut", "l": "bas",
-                               "c": "cloture", "v": "volume", "n": "transactions",
-                               "vw": "prix_moyen"})
+    table = _en_table(
+        lignes,
+        {
+            "t": "horodatage",
+            "o": "ouverture",
+            "h": "haut",
+            "l": "bas",
+            "c": "cloture",
+            "v": "volume",
+            "n": "transactions",
+            "vw": "prix_moyen",
+        },
+    )
     chemin.parent.mkdir(parents=True, exist_ok=True)
     table.to_parquet(chemin, index=False)
     return table
 
 
-def barres_polygon(r: Requete, cache: Path = CACHE, force: bool = False,
-                   pause: float = 13.0):
+def barres_polygon(r: Requete, cache: Path = CACHE, force: bool = False, pause: float = 13.0):
     """Les barres de Polygon, avec la pause qu'impose son forfait gratuit.
 
     Le forfait gratuit accepte cinq requêtes par minute, d'où la pause entre deux appels. Cela pèse
@@ -217,8 +242,10 @@ def barres_polygon(r: Requete, cache: Path = CACHE, force: bool = False,
         multiplicateur = r.pas[:-3]
     cle = _cle("POLYGON_API_KEY")
     ajuste = "false" if r.ajustement == "brut" else "true"
-    url = (f"https://api.polygon.io/v2/aggs/ticker/{r.symbole}/range/{multiplicateur}/{unite}/"
-           f"{r.debut}/{r.fin}?adjusted={ajuste}&sort=asc&limit=50000&apiKey={cle}")
+    url = (
+        f"https://api.polygon.io/v2/aggs/ticker/{r.symbole}/range/{multiplicateur}/{unite}/"
+        f"{r.debut}/{r.fin}?adjusted={ajuste}&sort=asc&limit=50000&apiKey={cle}"
+    )
     lignes: list[dict] = []
     premier = True
     while url:
@@ -229,9 +256,19 @@ def barres_polygon(r: Requete, cache: Path = CACHE, force: bool = False,
         lignes.extend(reponse.get("results") or [])
         suite = reponse.get("next_url")
         url = f"{suite}&apiKey={cle}" if suite else None
-    table = _en_table(lignes, {"t": "horodatage", "o": "ouverture", "h": "haut", "l": "bas",
-                               "c": "cloture", "v": "volume", "n": "transactions",
-                               "vw": "prix_moyen"})
+    table = _en_table(
+        lignes,
+        {
+            "t": "horodatage",
+            "o": "ouverture",
+            "h": "haut",
+            "l": "bas",
+            "c": "cloture",
+            "v": "volume",
+            "n": "transactions",
+            "vw": "prix_moyen",
+        },
+    )
     chemin.parent.mkdir(parents=True, exist_ok=True)
     table.to_parquet(chemin, index=False)
     return table

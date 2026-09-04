@@ -42,31 +42,33 @@ def appliquer(taille_base: float = 11.0) -> None:
     import matplotlib as mpl
     from cycler import cycler
 
-    mpl.rcParams.update({
-        "figure.dpi": 200,
-        "savefig.dpi": 200,
-        "savefig.bbox": "tight",
-        # les polices sont embarquées en TrueType dans les PDF plutôt que converties en dessins :
-        # le texte d'une figure reste ainsi sélectionnable et cherchable dans le rapport
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "figure.constrained_layout.use": True,
-        "font.size": taille_base,
-        "axes.titlesize": taille_base + 1,
-        "axes.labelsize": taille_base - 0.5,
-        "axes.prop_cycle": cycler(color=OKABE_ITO),
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.grid": True,
-        "axes.axisbelow": True,
-        "grid.alpha": 0.3,
-        "grid.linewidth": 0.5,
-        "legend.frameon": False,
-        "legend.fontsize": taille_base - 2,
-        "lines.linewidth": 1.7,
-        "xtick.labelsize": taille_base - 2,
-        "ytick.labelsize": taille_base - 2,
-    })
+    mpl.rcParams.update(
+        {
+            "figure.dpi": 200,
+            "savefig.dpi": 200,
+            "savefig.bbox": "tight",
+            # les polices sont embarquées en TrueType dans les PDF plutôt que converties en dessins :
+            # le texte d'une figure reste ainsi sélectionnable et cherchable dans le rapport
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
+            "figure.constrained_layout.use": True,
+            "font.size": taille_base,
+            "axes.titlesize": taille_base + 1,
+            "axes.labelsize": taille_base - 0.5,
+            "axes.prop_cycle": cycler(color=OKABE_ITO),
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.grid": True,
+            "axes.axisbelow": True,
+            "grid.alpha": 0.3,
+            "grid.linewidth": 0.5,
+            "legend.frameon": False,
+            "legend.fontsize": taille_base - 2,
+            "lines.linewidth": 1.7,
+            "xtick.labelsize": taille_base - 2,
+            "ytick.labelsize": taille_base - 2,
+        }
+    )
 
 
 def fr(valeur: float, decimales: int | None = None) -> str:
@@ -87,6 +89,24 @@ def formateur(decimales: int | None = None, suffixe: str = "", facteur: float = 
     from matplotlib.ticker import FuncFormatter
 
     return FuncFormatter(lambda v, _: fr(v * facteur, decimales) + suffixe)
+
+
+def axe_log_lisible(ax, decimales: int | None = None, suffixe: str = "", facteur: float = 1.0) -> None:
+    """L'axe des ordonnées en échelle logarithmique, gradué en nombres ordinaires à 1, 2 et 5.
+
+    Par défaut, matplotlib n'écrit que les puissances de dix, et une courbe qui va de 1 à 40
+    ne montre que « 10 » entre ses deux bornes. Ici les graduations principales restent aux
+    puissances de dix et les secondaires tombent à 2 et 5 fois chacune, toutes écrites en
+    français avec le même formateur : 1, 2, 5, 10, 20, 50. Mesuré le 2026-09-04 sur les
+    figures de richesse cumulée du portefeuille, qui n'avaient qu'une ou deux graduations.
+    """
+    from matplotlib.ticker import LogLocator
+
+    ax.set_yscale("log")
+    ax.yaxis.set_major_locator(LogLocator(base=10.0))
+    ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=(2.0, 5.0)))
+    ax.yaxis.set_major_formatter(formateur(decimales, suffixe, facteur))
+    ax.yaxis.set_minor_formatter(formateur(decimales, suffixe, facteur))
 
 
 def enregistrer(fig, dossier: Path | str, nom: str, vectoriel: bool = True) -> list[Path]:

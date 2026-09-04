@@ -55,7 +55,7 @@ class Releve:
     cle: str
     fichier: str
     ressource: str
-    periodicite: str          # « trimestriel » ou « mensuel »
+    periodicite: str  # « trimestriel » ou « mensuel »
     octets: int
     quoi: str
     jeu: str = JEU_BANQUES
@@ -66,17 +66,46 @@ class Releve:
 
 
 BANQUES = {
-    "p3": Releve("p3", "banks_quarterly_p3.csv", "027ee7f8-4b87-45cd-a10f-f95d3a5d4e09",
-                 "trimestriel", 230_496_088,
-                 "compte de résultat consolidé, en cumul depuis le début de l'exercice"),
-    "ba": Releve("ba", "banks_quarterly_ba.csv", "fe7617f7-a676-4966-aae3-c4cfbab4b935",
-                 "trimestriel", 149_615_442, "normes de fonds propres de Bâle III"),
-    "e3": Releve("e3", "banks_quarterly_e3.csv", "1f86e088-7d29-49c2-94de-ddbfe6559725",
-                 "trimestriel", 0, "provisions pour pertes de crédit attendues"),
-    "lr": Releve("lr", "banks_quarterly_lr.csv", "817d4005-aa4a-4c4f-9dad-6ce7eca40700",
-                 "trimestriel", 0, "exigences de levier"),
-    "m4": Releve("m4", "banks_monthly_m4.csv", "d0f6040e-671c-4301-a235-e9e7ba164604",
-                 "mensuel", 748_730_698, "bilan consolidé"),
+    "p3": Releve(
+        "p3",
+        "banks_quarterly_p3.csv",
+        "027ee7f8-4b87-45cd-a10f-f95d3a5d4e09",
+        "trimestriel",
+        230_496_088,
+        "compte de résultat consolidé, en cumul depuis le début de l'exercice",
+    ),
+    "ba": Releve(
+        "ba",
+        "banks_quarterly_ba.csv",
+        "fe7617f7-a676-4966-aae3-c4cfbab4b935",
+        "trimestriel",
+        149_615_442,
+        "normes de fonds propres de Bâle III",
+    ),
+    "e3": Releve(
+        "e3",
+        "banks_quarterly_e3.csv",
+        "1f86e088-7d29-49c2-94de-ddbfe6559725",
+        "trimestriel",
+        0,
+        "provisions pour pertes de crédit attendues",
+    ),
+    "lr": Releve(
+        "lr",
+        "banks_quarterly_lr.csv",
+        "817d4005-aa4a-4c4f-9dad-6ce7eca40700",
+        "trimestriel",
+        0,
+        "exigences de levier",
+    ),
+    "m4": Releve(
+        "m4",
+        "banks_monthly_m4.csv",
+        "d0f6040e-671c-4301-a235-e9e7ba164604",
+        "mensuel",
+        748_730_698,
+        "bilan consolidé",
+    ),
 }
 
 
@@ -86,12 +115,11 @@ def _contexte() -> ssl.SSLContext:
         import truststore
 
         return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    except ImportError:      # pragma: no cover - dépend de l'environnement
+    except ImportError:  # pragma: no cover - dépend de l'environnement
         return ssl.create_default_context()
 
 
-def telecharger(releve: Releve, racine: Path | str = Path("data/raw"),
-                force: bool = False) -> Path:
+def telecharger(releve: Releve, racine: Path | str = Path("data/raw"), force: bool = False) -> Path:
     """Un relevé sur le disque. Un fichier déjà présent et de taille plausible n'est pas repris."""
     racine = Path(racine)
     racine.mkdir(parents=True, exist_ok=True)
@@ -104,8 +132,7 @@ def telecharger(releve: Releve, racine: Path | str = Path("data/raw"),
     return dest
 
 
-def tout_telecharger(releves, racine: Path | str = Path("data/raw"),
-                     force: bool = False) -> dict[str, Path]:
+def tout_telecharger(releves, racine: Path | str = Path("data/raw"), force: bool = False) -> dict[str, Path]:
     return {r.cle: telecharger(r, racine, force) for r in releves}
 
 
@@ -138,8 +165,12 @@ WHERE "Measure Value/Valeur de mesure" IS NOT NULL
 """
 
 
-def construire_entrepot(releves, vues: dict[str, str], racine: Path | str = Path("data/raw"),
-                        entrepot: Path | str = Path("data/osfi.duckdb")):
+def construire_entrepot(
+    releves,
+    vues: dict[str, str],
+    racine: Path | str = Path("data/raw"),
+    entrepot: Path | str = Path("data/osfi.duckdb"),
+):
     """L'entrepôt DuckDB, une table par relevé, et les vues que l'appelant nomme.
 
     `vues` associe le nom de la vue à la clé du relevé qu'elle expose, par exemple
@@ -182,11 +213,9 @@ def mesurer(co, vues: list[str]) -> dict[str, int]:
     mesures: dict[str, int] = {}
     for vue in vues:
         mesures[f"lignes_{vue}"] = co.execute(f"SELECT count(*) FROM {vue}").fetchone()[0]
-        mesures[f"postes_{vue}"] = co.execute(
-            f"SELECT count(DISTINCT poste) FROM {vue}").fetchone()[0]
+        mesures[f"postes_{vue}"] = co.execute(f"SELECT count(DISTINCT poste) FROM {vue}").fetchone()[0]
     mesures["lignes_total"] = sum(v for k, v in mesures.items() if k.startswith("lignes_"))
-    mesures["institutions"] = co.execute(
-        f"SELECT count(DISTINCT institution) FROM {vues[0]}").fetchone()[0]
+    mesures["institutions"] = co.execute(f"SELECT count(DISTINCT institution) FROM {vues[0]}").fetchone()[0]
     return mesures
 
 
@@ -197,10 +226,12 @@ def noms_courants(co, vue: str) -> dict[str, str]:
     devenue Tangerine. Prendre un nom au hasard dans l'histoire afficherait des banques disparues.
     """
     colonnes = [c[0] for c in co.execute(f"DESCRIBE {vue}").fetchall()]
-    ordre = ("exercice DESC, trimestre DESC" if "exercice" in colonnes else "fin_de_mois DESC")
-    return dict(co.execute(f"""
+    ordre = "exercice DESC, trimestre DESC" if "exercice" in colonnes else "fin_de_mois DESC"
+    return dict(
+        co.execute(f"""
         SELECT institution, nom FROM (
           SELECT institution, nom,
                  row_number() OVER (PARTITION BY institution ORDER BY {ordre}) AS rang
           FROM {vue})
-        WHERE rang = 1""").fetchall())
+        WHERE rang = 1""").fetchall()
+    )

@@ -42,9 +42,11 @@ def test_le_titre_de_niveau_un_devient_le_titre_du_document():
 def test_les_ecussons_distants_sont_retires_et_les_figures_gardees():
     """La distinction qui a manqué à la première version : une image distante est un écusson d'état,
     une image relative est une figure du dépôt."""
-    source = ("# T\n\n[![ci](https://exemple.org/badge.svg)](https://exemple.org/ci)\n"
-              "![python](https://img.shields.io/badge/x-y-blue)\n\n"
-              "![Une figure](results/figures/a.png)\n")
+    source = (
+        "# T\n\n[![ci](https://exemple.org/badge.svg)](https://exemple.org/ci)\n"
+        "![python](https://img.shields.io/badge/x-y-blue)\n\n"
+        "![Une figure](results/figures/a.png)\n"
+    )
     corps = convertir(source, racine="..").corps
     assert "img.shields.io" not in corps and "badge.svg" not in corps
     assert 'image("../results/figures/a.png"' in corps
@@ -60,6 +62,14 @@ def test_un_tableau_devient_une_table_avec_son_entete():
 def test_une_citation_devient_un_bloc_cite():
     corps = convertir("# T\n\n> Une phrase citée.\n> Sa suite.\n").corps
     assert "#quote(block: true)[Une phrase citée. Sa suite.]" in corps
+
+
+def test_un_bloc_details_devient_une_section_sans_balises_html():
+    source = "# T\n\n<details>\n<summary>Résumé en anglais</summary>\n\nAn English summary.\n\n</details>\n"
+    corps = convertir(source).corps
+    assert "== Résumé en anglais" in corps
+    assert "An English summary." in corps
+    assert "<details>" not in corps and "</details>" not in corps
 
 
 def test_les_listes_rattachent_leurs_continuations():
@@ -85,7 +95,8 @@ def test_un_document_complet_se_compile(tmp_path):
         "# Un titre avec un # et une * étoile\n\n"
         "Un paragraphe avec du **gras**, du `code`, et un [lien](https://exemple.org).\n\n"
         "## Une section\n\n> Une citation de 2021.\n\n| A | B |\n|---|---:|\n| 1 | 2 |\n\n"
-        "```python\nprint('bonjour')\n```\n\n- une puce\n- une autre\n")
+        "```python\nprint('bonjour')\n```\n\n- une puce\n- une autre\n"
+    )
     chemin = engendrer(depot, date="2026-08-29")
     assert chemin.exists() and chemin.stat().st_size > 1000
     pypdf = pytest.importorskip("pypdf")
@@ -111,6 +122,7 @@ def test_le_depot_est_lu_dans_la_configuration_de_git(tmp_path):
 
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text(
-        '[remote "origin"]\n\turl = https://github.com/Guilou001/exemple.git\n')
+        '[remote "origin"]\n\turl = https://github.com/Guilou001/exemple.git\n'
+    )
     assert _depot_de(tmp_path) == "https://github.com/Guilou001/exemple"
     assert _depot_de(Path(tmp_path / "vide")) == "https://github.com/Guilou001"

@@ -16,7 +16,15 @@ from gvf.figures import (  # noqa: E402
     tornade,
     triangle,
 )
-from gvf.style import ESPACE_FINE, OKABE_ITO, appliquer, enregistrer, formateur, fr  # noqa: E402
+from gvf.style import (  # noqa: E402
+    ESPACE_FINE,
+    OKABE_ITO,
+    appliquer,
+    axe_log_lisible,
+    enregistrer,
+    formateur,
+    fr,
+)
 
 
 @pytest.fixture
@@ -36,7 +44,7 @@ def test_la_palette_est_celle_d_okabe_ito_et_ne_change_pas():
 
 def test_les_nombres_s_ecrivent_en_francais():
     assert fr(12.5, 1) == "12,5"
-    assert fr(1234567.0, 0) == "1\u202f234\u202f567"   # espace fine insécable
+    assert fr(1234567.0, 0) == "1\u202f234\u202f567"  # espace fine insécable
     assert fr(0.5) == "0,5"
 
 
@@ -154,3 +162,17 @@ def test_le_triangle_garde_ses_cases_vides(axe):
     assert [t.get_text() for t in axe.get_yticklabels()] == ["2023", "2024", "2025"]
     # une seule case porte du texte par valeur connue, six au total
     assert len([t for t in axe.texts if t.get_text()]) == 6
+
+
+def test_l_axe_logarithmique_porte_des_nombres_ordinaires_a_1_2_et_5() -> None:
+    """De 1 à 40, l'axe montre 1, 2, 5, 10, 20 et 50 en français, et aucune puissance de dix."""
+    fig, ax = plt.subplots()
+    ax.plot([0, 1, 2, 3], [1.0, 4.0, 12.0, 40.0])
+    axe_log_lisible(ax)
+    fig.canvas.draw()
+    principales = [t.get_text() for t in ax.yaxis.get_majorticklabels() if t.get_text()]
+    secondaires = [t.get_text() for t in ax.yaxis.get_minorticklabels() if t.get_text()]
+    assert "1" in principales and "10" in principales
+    assert {"2", "5", "20"} <= set(secondaires)
+    assert all("10^" not in t and "$" not in t for t in principales + secondaires)
+    plt.close(fig)

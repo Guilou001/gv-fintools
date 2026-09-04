@@ -35,8 +35,9 @@ def test_le_fichier_de_cles_ne_recouvre_pas_l_environnement(monkeypatch, tmp_pat
     """Une clé déjà posée dans l'environnement l'emporte : c'est ce qui permet d'en passer une
     autre en intégration continue sans toucher au fichier de l'utilisateur."""
     fichier = tmp_path / "cles.env"
-    fichier.write_text("# un commentaire\nPOLYGON_API_KEY=du_fichier\nALPACA_KEY_ID=aussi\n",
-                       encoding="utf-8")
+    fichier.write_text(
+        "# un commentaire\nPOLYGON_API_KEY=du_fichier\nALPACA_KEY_ID=aussi\n", encoding="utf-8"
+    )
     monkeypatch.setenv("POLYGON_API_KEY", "deja_pose")
     marches.charger_les_cles(fichier)
     assert os.environ["POLYGON_API_KEY"] == "deja_pose"
@@ -53,13 +54,32 @@ def test_le_nom_de_fichier_distingue_les_deux_flux():
 
 
 def test_la_table_porte_les_colonnes_attendues():
-    lignes = [{"t": "2026-01-05T14:30:00Z", "o": 1.0, "h": 2.0, "l": 0.5, "c": 1.5, "v": 100,
-               "n": 7, "vw": 1.4}]
-    table = marches._en_table(lignes, {"t": "horodatage", "o": "ouverture", "h": "haut",
-                                       "l": "bas", "c": "cloture", "v": "volume",
-                                       "n": "transactions", "vw": "prix_moyen"})
-    assert list(table.columns) == ["horodatage", "ouverture", "haut", "bas", "cloture", "volume",
-                                   "transactions", "prix_moyen"]
+    lignes = [
+        {"t": "2026-01-05T14:30:00Z", "o": 1.0, "h": 2.0, "l": 0.5, "c": 1.5, "v": 100, "n": 7, "vw": 1.4}
+    ]
+    table = marches._en_table(
+        lignes,
+        {
+            "t": "horodatage",
+            "o": "ouverture",
+            "h": "haut",
+            "l": "bas",
+            "c": "cloture",
+            "v": "volume",
+            "n": "transactions",
+            "vw": "prix_moyen",
+        },
+    )
+    assert list(table.columns) == [
+        "horodatage",
+        "ouverture",
+        "haut",
+        "bas",
+        "cloture",
+        "volume",
+        "transactions",
+        "prix_moyen",
+    ]
     assert float(table["cloture"].iloc[0]) == 1.5
 
 
@@ -75,16 +95,20 @@ def test_les_colonnes_absentes_de_la_source_sont_comblees():
     """Le nombre de transactions et le prix moyen manquent selon la source et le flux. Ils doivent
     exister quand même, à valeur manquante, pour que le schéma soit le même partout."""
     lignes = [{"t": "2026-01-05T14:30:00Z", "o": 1.0, "h": 2.0, "l": 0.5, "c": 1.5, "v": 100}]
-    table = marches._en_table(lignes, {"t": "horodatage", "o": "ouverture", "h": "haut",
-                                       "l": "bas", "c": "cloture", "v": "volume"})
+    table = marches._en_table(
+        lignes, {"t": "horodatage", "o": "ouverture", "h": "haut", "l": "bas", "c": "cloture", "v": "volume"}
+    )
     assert table["transactions"].isna().all()
 
 
 def test_la_table_est_triee_dans_le_temps():
-    lignes = [{"t": "2026-01-05T14:32:00Z", "o": 1, "h": 1, "l": 1, "c": 3, "v": 1},
-              {"t": "2026-01-05T14:30:00Z", "o": 1, "h": 1, "l": 1, "c": 1, "v": 1}]
-    table = marches._en_table(lignes, {"t": "horodatage", "o": "ouverture", "h": "haut",
-                                       "l": "bas", "c": "cloture", "v": "volume"})
+    lignes = [
+        {"t": "2026-01-05T14:32:00Z", "o": 1, "h": 1, "l": 1, "c": 3, "v": 1},
+        {"t": "2026-01-05T14:30:00Z", "o": 1, "h": 1, "l": 1, "c": 1, "v": 1},
+    ]
+    table = marches._en_table(
+        lignes, {"t": "horodatage", "o": "ouverture", "h": "haut", "l": "bas", "c": "cloture", "v": "volume"}
+    )
     assert list(table["cloture"]) == [1, 3]
 
 
@@ -97,9 +121,23 @@ def test_le_cache_evite_le_reseau(monkeypatch, tmp_path):
 
     def fausse_reponse(url, entetes, essais=4):
         appels["n"] += 1
-        return {"bars": {"QQQ": [{"t": "2026-01-05T14:30:00Z", "o": 1, "h": 2, "l": 0.5,
-                                  "c": 1.5, "v": 100, "n": 7, "vw": 1.4}]},
-                "next_page_token": None}
+        return {
+            "bars": {
+                "QQQ": [
+                    {
+                        "t": "2026-01-05T14:30:00Z",
+                        "o": 1,
+                        "h": 2,
+                        "l": 0.5,
+                        "c": 1.5,
+                        "v": 100,
+                        "n": 7,
+                        "vw": 1.4,
+                    }
+                ]
+            },
+            "next_page_token": None,
+        }
 
     monkeypatch.setattr(marches, "_lire_json", fausse_reponse)
     r = Requete("QQQ", "2026-01-05", "2026-01-05")
@@ -115,10 +153,14 @@ def test_la_pagination_va_jusqu_au_bout(monkeypatch, tmp_path):
     monkeypatch.setenv("ALPACA_KEY_ID", "essai")
     monkeypatch.setenv("ALPACA_SECRET_KEY", "essai")
     pages = [
-        {"bars": {"QQQ": [{"t": "2026-01-05T14:30:00Z", "o": 1, "h": 1, "l": 1, "c": 1, "v": 1}]},
-         "next_page_token": "suite"},
-        {"bars": {"QQQ": [{"t": "2026-01-05T14:31:00Z", "o": 1, "h": 1, "l": 1, "c": 2, "v": 1}]},
-         "next_page_token": None},
+        {
+            "bars": {"QQQ": [{"t": "2026-01-05T14:30:00Z", "o": 1, "h": 1, "l": 1, "c": 1, "v": 1}]},
+            "next_page_token": "suite",
+        },
+        {
+            "bars": {"QQQ": [{"t": "2026-01-05T14:31:00Z", "o": 1, "h": 1, "l": 1, "c": 2, "v": 1}]},
+            "next_page_token": None,
+        },
     ]
     monkeypatch.setattr(marches, "_lire_json", lambda *a, **k: pages.pop(0))
     table = marches.barres_alpaca(Requete("QQQ", "2026-01-05", "2026-01-05"), cache=tmp_path)
@@ -177,10 +219,13 @@ def test_les_horodatages_en_millisecondes_sont_lus_avant_le_tri():
     le voyait : la table avait le bon nombre de lignes et les bonnes colonnes."""
     import pandas as pd
 
-    lignes = [{"t": 1781000160000, "o": 1, "h": 1, "l": 1, "c": 2.0, "v": 1},
-              {"t": 1781000100000, "o": 1, "h": 1, "l": 1, "c": 1.0, "v": 1}]
-    table = marches._en_table(lignes, {"t": "horodatage", "o": "ouverture", "h": "haut",
-                                       "l": "bas", "c": "cloture", "v": "volume"})
+    lignes = [
+        {"t": 1781000160000, "o": 1, "h": 1, "l": 1, "c": 2.0, "v": 1},
+        {"t": 1781000100000, "o": 1, "h": 1, "l": 1, "c": 1.0, "v": 1},
+    ]
+    table = marches._en_table(
+        lignes, {"t": "horodatage", "o": "ouverture", "h": "haut", "l": "bas", "c": "cloture", "v": "volume"}
+    )
     assert list(table["cloture"]) == [1.0, 2.0]
     assert table["horodatage"].iloc[0].year > 2000
     assert (table["horodatage"].iloc[1] - table["horodatage"].iloc[0]) == pd.Timedelta(minutes=1)
